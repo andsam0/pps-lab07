@@ -1,5 +1,7 @@
 package ex1
 
+import ex1.Parsers.charParser
+
 /** Consider the Parser example shown in previous lesson. Analogously to
   * NonEmpty, create a mixin NotTwoConsecutive, which adds the idea that one
   * cannot parse two consecutive elements which are equal. Use it (as a mixin)
@@ -14,7 +16,10 @@ abstract class Parser[T]:
     (seq forall parse) & end // note &, not &&
 
 object Parsers:
-  val todo = ??? // put the extensions here..
+  extension (s: String)
+    def charParser() : Parser[Char] =
+      new BasicParser(s.toSet)
+
 class BasicParser(chars: Set[Char]) extends Parser[Char]:
   override def parse(t: Char): Boolean = chars.contains(t)
   override def end: Boolean = true
@@ -34,8 +39,7 @@ trait NotTwoConsecutive[T] extends Parser[T]:
   private[this] var consecutive = false
   private var prev: Option[T] = Option.empty
   abstract override def parse(t: T): Boolean = {
-    if prev.isDefined then
-      if prev.get == t then
+    if prev.isDefined && prev.get == t then
         consecutive = true
     prev = Option(t)
     super.parse(t)
@@ -73,7 +77,7 @@ class NotTwoConsecutiveParser(chars: Set[Char])
   println(parserNTCNE.parseAll("XYYZ".toList)) // false
   println(parserNTCNE.parseAll("".toList)) // false
 
-  def sparser: Parser[Char] = ??? // "abc".charParser()
+  def sparser: Parser[Char] = "abc".charParser() // "abc".charParser()
   println(sparser.parseAll("aabc".toList)) // true
   println(sparser.parseAll("aabcdc".toList)) // false
   println(sparser.parseAll("".toList)) // true
