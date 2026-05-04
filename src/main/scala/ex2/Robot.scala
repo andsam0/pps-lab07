@@ -46,29 +46,41 @@ class LoggingRobot(val robot: Robot) extends Robot:
 
 class RobotWithBattery(val robot: Robot, var batteryLevel: Int) extends Robot:
   export robot.{position, direction}
-  override def turn(dir: Direction): Unit =
+
+  private def consumeBattery(action: => Unit): Unit =
     if batteryLevel > 0 then {
-      robot.turn(dir)
-      batteryLevel = batteryLevel - 1
+      action
+      batteryLevel -= 1
     }
-  override def act(): Unit =
-    if batteryLevel > 0 then {
-      robot.act()
-      batteryLevel = batteryLevel - 1
-    }
+
+  override def turn(dir: Direction): Unit = consumeBattery(robot.turn(dir))
+  override def act(): Unit = consumeBattery(robot.act())
   override def toString: String = s"robot at ${robot.position} facing ${robot.direction} with remaining $batteryLevel battery"
 
 class RobotCanFail(val robot: Robot, val failureProbability: Int) extends Robot:
   export robot.{position, direction}
-  override def turn(dir: Direction): Unit =
+
+  private def checkFailAndAct(action: => Unit): Unit =
     val failed: Boolean = Random.nextInt(101) < failureProbability
-    if !failed then robot.turn(dir) else println("failed")
+    if !failed then action else println("failed")
+
+  override def turn(dir: Direction): Unit =
+    checkFailAndAct(robot.turn(dir))
 
   override def act(): Unit =
-    val failed: Boolean = Random.nextInt(101) < failureProbability
-    if !failed then robot.act() else println("failed")
+    checkFailAndAct(robot.act())
 
-  override def toString: String = s"robot at ${robot.position} facing ${robot.direction} with remaining $failureProbability fail chance"
+  override def toString: String = s"robot at ${robot.position} facing ${robot.direction} with $failureProbability% failure chance"
+
+class RobotRepeated(val robot: Robot, val times: Int) extends Robot:
+  export robot.{position, direction}
+  override def turn(dir: Direction): Unit =
+    for _ <- 1 to times do robot.turn(dir)
+
+  override def act(): Unit =
+    for _ <- 1 to times do robot.act()
+
+  override def toString: String = s"$robot (Repeated $times times)"
 
 @main def testRobot(): Unit =
   val robot = LoggingRobot(SimpleRobot((0, 0), Direction.North))
